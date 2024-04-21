@@ -53,6 +53,12 @@ import org.jivesoftware.smack.packet.StanzaError.Condition.item_not_found
 import org.jivesoftware.smack.packet.StanzaError.Condition.service_unavailable
 import org.json.simple.JSONArray
 import java.util.Collections.singletonList
+import okhttp3.OkHttpClient
+import org.json.simple.JSONObject
+import com.google.gson.Gson
+import okhttp3.Request
+import org.jitsi.xmpp.extensions.colibri2.json.Colibri2JSONDeserializer
+import org.json.simple.parser.JSONParser
 
 /**
  * Implements [ColibriSessionManager] using colibri2.
@@ -103,6 +109,7 @@ class ColibriV2SessionManager(
      */
     private val syncRoot = Any()
 
+    private val okHttpClient = OkHttpClient()
     /**
      * Expire everything.
      */
@@ -280,6 +287,7 @@ class ColibriV2SessionManager(
         val session: Colibri2Session
         val created: Boolean
         val participantInfo: ParticipantInfo
+        val okReq: Request
         synchronized(syncRoot) {
             if (participants.containsKey(participant.id)) {
                 throw IllegalStateException("participant already exists")
@@ -329,7 +337,12 @@ class ColibriV2SessionManager(
                 )
             }
             participantInfo = ParticipantInfo(participant, session)
-            stanzaCollector = session.sendAllocationRequest(participantInfo)
+            // stanzaCollector = session.sendAllocationRequest(participantInfo)
+
+            val httpRequestIq = session.buildAllocationRequest(participantInfo)
+            okReq = session.buildJSONAllocationRequest(httpRequestIq)
+
+
             add(participantInfo)
             if (created) {
                 val topologySelectionResult = topologySelectionStrategy.connectNode(
@@ -343,7 +356,7 @@ class ColibriV2SessionManager(
                         if (from != null) {
                             logger.debug {
                                 "Adding a relayed endpoint to $otherSession for ${participantInfo.id} " +
-                                    "from ${from.relayId}."
+                                        "from ${from.relayId}."
                             }
                             // We already made sure that relayId is not null when there are multiple sessions.
                             otherSession.updateRemoteParticipant(participantInfo, from.relayId!!, create = true)
@@ -358,12 +371,21 @@ class ColibriV2SessionManager(
         }
 
         val response: IQ?
-        try {
-            response = stanzaCollector.nextResult()
-            logger.trace { "Received response: ${response?.toStringOpt()}" }
-        } finally {
-            stanzaCollector.cancel()
+        okHttpClient.newCall(okReq).execute().use { resp ->
+            if (!resp.isSuccessful) {
+                throw ColibriAllocationFailedException("HTTP request failed: $resp")
+            }
+
+            val parser = JSONParser()
+            val jsonObj = parser.parse(resp.body?.string()) as JSONObject
+            response = Colibri2JSONDeserializer.deserializeConferenceModified(jsonObj).build()
         }
+//        try {
+//            response = stanzaCollector.nextResult()
+//            logger.trace { "Received response: ${response?.toStringOpt()}" }
+//        } finally {
+//            stanzaCollector.cancel()
+//        }
 
         synchronized(syncRoot) {
             // We may have already removed the session and/or participant, for example due to a previous failure. In

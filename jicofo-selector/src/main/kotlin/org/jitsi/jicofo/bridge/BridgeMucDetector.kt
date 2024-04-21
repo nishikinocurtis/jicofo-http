@@ -19,6 +19,7 @@ package org.jitsi.jicofo.bridge
 
 import org.jitsi.jicofo.xmpp.BaseBrewery
 import org.jitsi.jicofo.xmpp.XmppProvider
+import org.jitsi.utils.logging2.Logger
 import org.jitsi.utils.logging2.LoggerImpl
 import org.jitsi.xmpp.extensions.colibri.ColibriStatsExtension
 import org.jxmpp.jid.EntityBareJid
@@ -37,7 +38,8 @@ class BridgeMucDetector(
      * they update their status.
      */
     private val bridgeSelector: BridgeSelector,
-    breweryJid: EntityBareJid
+    breweryJid: EntityBareJid,
+    private val innerLogger: Logger = LoggerImpl("InnerBridgeDetector").apply { addContext("type", "bridge-detector") }
 ) : BaseBrewery<ColibriStatsExtension?>(
     xmppProvider,
     breweryJid,
@@ -50,5 +52,8 @@ class BridgeMucDetector(
         bridgeSelector.addJvbAddress(jid, stats)
     }
 
-    override fun notifyInstanceOffline(jid: Jid) = bridgeSelector.removeJvbAddress(jid)
+    override fun notifyInstanceOffline(jid: Jid) {
+        innerLogger.info("received instance offline, not notifying jicofo")
+        // bridgeSelector.removeJvbAddress(jid)
+    }
 }

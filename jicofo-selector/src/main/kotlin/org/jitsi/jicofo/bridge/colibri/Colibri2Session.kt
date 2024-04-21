@@ -17,6 +17,9 @@
  */
 package org.jitsi.jicofo.bridge.colibri
 
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.jitsi.jicofo.OctoConfig
 import org.jitsi.jicofo.bridge.Bridge
 import org.jitsi.jicofo.bridge.CascadeLink
@@ -40,6 +43,7 @@ import org.jitsi.xmpp.extensions.colibri2.InitialLastN
 import org.jitsi.xmpp.extensions.colibri2.Media
 import org.jitsi.xmpp.extensions.colibri2.Sctp
 import org.jitsi.xmpp.extensions.colibri2.Transport
+import org.jitsi.xmpp.extensions.colibri2.json.*
 import org.jitsi.xmpp.extensions.jingle.DtlsFingerprintPacketExtension
 import org.jitsi.xmpp.extensions.jingle.ExtmapAllowMixedPacketExtension
 import org.jitsi.xmpp.extensions.jingle.IceUdpTransportPacketExtension
@@ -48,6 +52,7 @@ import org.jivesoftware.smack.StanzaCollector
 import org.jivesoftware.smack.packet.ErrorIQ
 import org.jivesoftware.smack.packet.IQ
 import org.jivesoftware.smackx.muc.MUCRole
+import org.json.simple.JSONObject
 import java.util.Collections.singletonList
 import java.util.UUID
 
@@ -114,6 +119,47 @@ class Colibri2Session(
         logger.trace { "Sending allocation request for ${participant.id}: ${request.build().toStringOpt()}" }
         created = true
         return xmppConnection.createStanzaCollectorAndSend(request.build())
+    }
+
+    internal fun buildAllocationRequest(participant: ParticipantInfo): ConferenceModifyIQ {
+        val request = createRequest(!created)
+        val endpoint = participant.toEndpoint(create = true, expire = false).apply {
+            if (participant.audioMuted || participant.videoMuted) {
+                setForceMute(participant.audioMuted, participant.videoMuted)
+            }
+            if (participant.visitor) {
+                setMucRole(MUCRole.visitor)
+            }
+            setTransport(
+                Transport.getBuilder().apply {
+                    // TODO: we're hard-coding the role here, and it must be consistent with the role signaled to the
+                    //  client. Signaling inconsistent roles leads to hard to debug issues (e.g. sporadic ICE/DTLS
+                    //  failures with firefox but not chrome).
+                    setIceControlling(true)
+                    if (participant.useSctp) {
+                        setSctp(Sctp.Builder().build())
+                    }
+                }.build()
+            )
+        }
+        participant.medias.forEach { endpoint.addMedia(it) }
+        request.addEndpoint(endpoint.build())
+
+        logger.trace { "Composing allocation request for ${participant.id}: ${request.build().toStringOpt()}" }
+        return request.build()
+    }
+
+    internal fun buildJSONAllocationRequest(iqRequest: ConferenceModifyIQ): Request {
+        created = true
+
+        val requestBody = Colibri2JSONSerializer.serializeConferenceModify(iqRequest).toJSONString()
+            .toRequestBody("application/json".toMediaType())
+        var request = Request.Builder()
+            .url("http://127.0.0.1:10728/colibri/v2/conferences/" + iqRequest.meetingId)
+            .post(requestBody)
+            .header("x-ftmesh-mode", "0").build()
+
+        return request
     }
 
     /** Updates the transport info and/or sources for an existing endpoint. */
@@ -315,7 +361,7 @@ class Colibri2Session(
                         if (reInvite) {
                             logger.warn(
                                 "Endpoint [$endpointId] is not found, session failed: ${it.toStringOpt()}, " +
-                                    "request was: ${iq.toStringOpt()}"
+                                        "request was: ${iq.toStringOpt()}"
                             )
                             colibriSessionManager.endpointFailed(endpointId!!)
                             return@sendIqAndHandleResponseAsync
