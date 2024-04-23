@@ -17,7 +17,7 @@
  */
 package org.jitsi.jicofo.bridge.colibri
 
-import okhttp3.*
+import okhttp3.Request
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.jitsi.jicofo.OctoConfig
@@ -43,7 +43,7 @@ import org.jitsi.xmpp.extensions.colibri2.InitialLastN
 import org.jitsi.xmpp.extensions.colibri2.Media
 import org.jitsi.xmpp.extensions.colibri2.Sctp
 import org.jitsi.xmpp.extensions.colibri2.Transport
-import org.jitsi.xmpp.extensions.colibri2.json.*
+import org.jitsi.xmpp.extensions.colibri2.json.Colibri2JSONSerializer
 import org.jitsi.xmpp.extensions.jingle.DtlsFingerprintPacketExtension
 import org.jitsi.xmpp.extensions.jingle.ExtmapAllowMixedPacketExtension
 import org.jitsi.xmpp.extensions.jingle.IceUdpTransportPacketExtension
@@ -52,7 +52,6 @@ import org.jivesoftware.smack.StanzaCollector
 import org.jivesoftware.smack.packet.ErrorIQ
 import org.jivesoftware.smack.packet.IQ
 import org.jivesoftware.smackx.muc.MUCRole
-import org.json.simple.JSONObject
 import java.util.Collections.singletonList
 import java.util.UUID
 
@@ -360,8 +359,7 @@ class Colibri2Session(
                         val reInvite = reason == Colibri2Error.Reason.UNKNOWN_ENDPOINT && endpointId != null
                         if (reInvite) {
                             logger.warn(
-                                "Endpoint [$endpointId] is not found, session failed: ${it.toStringOpt()}, " +
-                                        "request was: ${iq.toStringOpt()}"
+                                "Endpoint [$endpointId] is not found, session failed: ${it.toStringOpt()}, " + "request was: ${iq.toStringOpt()}"
                             )
                             colibriSessionManager.endpointFailed(endpointId!!)
                             return@sendIqAndHandleResponseAsync

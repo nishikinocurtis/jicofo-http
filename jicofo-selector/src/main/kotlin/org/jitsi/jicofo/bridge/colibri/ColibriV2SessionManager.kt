@@ -19,6 +19,9 @@
 package org.jitsi.jicofo.bridge.colibri
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
+import java.util.Collections.singletonList
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.jitsi.jicofo.OctoConfig
 import org.jitsi.jicofo.TaskPools
 import org.jitsi.jicofo.bridge.Bridge
@@ -52,11 +55,7 @@ import org.jivesoftware.smack.packet.StanzaError.Condition.conflict
 import org.jivesoftware.smack.packet.StanzaError.Condition.item_not_found
 import org.jivesoftware.smack.packet.StanzaError.Condition.service_unavailable
 import org.json.simple.JSONArray
-import java.util.Collections.singletonList
-import okhttp3.OkHttpClient
 import org.json.simple.JSONObject
-import com.google.gson.Gson
-import okhttp3.Request
 import org.jitsi.xmpp.extensions.colibri2.json.Colibri2JSONDeserializer
 import org.json.simple.parser.JSONParser
 
@@ -342,7 +341,6 @@ class ColibriV2SessionManager(
             val httpRequestIq = session.buildAllocationRequest(participantInfo)
             okReq = session.buildJSONAllocationRequest(httpRequestIq)
 
-
             add(participantInfo)
             if (created) {
                 val topologySelectionResult = topologySelectionStrategy.connectNode(
@@ -357,8 +355,7 @@ class ColibriV2SessionManager(
                             logger.debug {
                                 "Adding a relayed endpoint to $otherSession for ${participantInfo.id} " +
                                         "from ${from.relayId}."
-                            }
-                            // We already made sure that relayId is not null when there are multiple sessions.
+                            } // We already made sure that relayId is not null when there are multiple sessions.
                             otherSession.updateRemoteParticipant(participantInfo, from.relayId!!, create = true)
                         }
                     }
