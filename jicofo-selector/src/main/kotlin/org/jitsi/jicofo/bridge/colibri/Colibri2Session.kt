@@ -153,8 +153,9 @@ class Colibri2Session(
 
         val requestBody = Colibri2JSONSerializer.serializeConferenceModify(iqRequest).toJSONString()
             .toRequestBody("application/json".toMediaType())
+        val baseAddress = System.getenv("HOST_BASE_URL") ?: "http://127.0.0.1:10728/"
         var request = Request.Builder()
-            .url("http://127.0.0.1:10728/colibri/v2/conferences/" + iqRequest.meetingId)
+            .url(baseAddress + "colibri/v2/conferences/" + iqRequest.meetingId)
             .post(requestBody)
             .header("x-ftmesh-mode", "0").build()
 

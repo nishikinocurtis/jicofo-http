@@ -368,6 +368,7 @@ class ColibriV2SessionManager(
             eventEmitter.fireEvent { bridgeCountChanged(sessions.size) }
         }
 
+        logger.info("Start executing bridge allocate request")
         val response: IQ?
         okHttpClient.newCall(okReq).execute().use { resp ->
             if (!resp.isSuccessful) {
@@ -378,6 +379,8 @@ class ColibriV2SessionManager(
             val jsonObj = parser.parse(resp.body?.string()) as JSONObject
             response = Colibri2JSONDeserializer.deserializeConferenceModified(jsonObj).build()
         }
+
+        logger.info("Allocation request finished")
 //        try {
 //            response = stanzaCollector.nextResult()
 //            logger.trace { "Received response: ${response?.toStringOpt()}" }
