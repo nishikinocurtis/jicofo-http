@@ -40,8 +40,8 @@ VERSION=$VERSIONMAJ-$BUILD_NUMBER
 echo "Package version: ${VERSION}"
 
 REV=$(git log --pretty=format:'%h' -n 1)
-dch -v "$VERSION-1" "Build from git. $REV"
-dch -D unstable -r ""
+#dch -v "$VERSION-1" "Build from git. $REV"
+#dch -D unstable -r ""
 
 # sets the version in the pom file so it will propagte to resulting jar
 mvn versions:set -DnewVersion="${VERSION}"
@@ -55,7 +55,7 @@ mvn install
 mvn dependency:resolve
 
 # now build the deb
-dpkg-buildpackage -tc -us -uc -A
+dpkg-buildpackage -tc -us -uc -A -d
 
 # clean the current changes as dch had changed the change log
 git checkout debian/changelog
@@ -67,5 +67,5 @@ ls -l ../{*.changes,*.deb,*.buildinfo}
 echo "-----"
 
 # Let's try deploying
-cd ..
-([ ! -x deploy.sh ] || ./deploy.sh "jicofo" ${BUILD_NUMBER} )
+#cd ..
+#([ ! -x deploy.sh ] || ./deploy.sh "jicofo" ${BUILD_NUMBER} )

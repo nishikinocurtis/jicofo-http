@@ -17,8 +17,8 @@
  */
 package org.jitsi.jicofo.bridge.colibri
 
-import okhttp3.Request
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.jitsi.jicofo.OctoConfig
 import org.jitsi.jicofo.bridge.Bridge
@@ -359,7 +359,8 @@ class Colibri2Session(
                         val reInvite = reason == Colibri2Error.Reason.UNKNOWN_ENDPOINT && endpointId != null
                         if (reInvite) {
                             logger.warn(
-                                "Endpoint [$endpointId] is not found, session failed: ${it.toStringOpt()}, " + "request was: ${iq.toStringOpt()}"
+                                "Endpoint [$endpointId] is not found, session failed: ${it.toStringOpt()}, " +
+                                    "request was: ${iq.toStringOpt()}"
                             )
                             colibriSessionManager.endpointFailed(endpointId!!)
                             return@sendIqAndHandleResponseAsync

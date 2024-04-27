@@ -1,6 +1,7 @@
 [*.{kt,kts}]
 max_line_length=120
 ktlint_code_style = intellij_idea
+ij_kotlin_imports_layout = *,java.**,javax.**,kotlin.**,^
 
 # I find trailing commas annoying
 ktlint_standard_trailing-comma-on-call-site = disabled

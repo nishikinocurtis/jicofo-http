@@ -19,7 +19,6 @@
 package org.jitsi.jicofo.bridge.colibri
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
-import java.util.Collections.singletonList
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.jitsi.jicofo.OctoConfig
@@ -44,6 +43,7 @@ import org.jitsi.utils.logging2.createChildLogger
 import org.jitsi.xmpp.extensions.colibri2.Colibri2Error
 import org.jitsi.xmpp.extensions.colibri2.ConferenceModifiedIQ
 import org.jitsi.xmpp.extensions.colibri2.InitialLastN
+import org.jitsi.xmpp.extensions.colibri2.json.Colibri2JSONDeserializer
 import org.jitsi.xmpp.extensions.jingle.IceUdpTransportPacketExtension
 import org.jitsi.xmpp.util.XmlStringBuilderUtil.Companion.toStringOpt
 import org.jivesoftware.smack.AbstractXMPPConnection
@@ -56,8 +56,8 @@ import org.jivesoftware.smack.packet.StanzaError.Condition.item_not_found
 import org.jivesoftware.smack.packet.StanzaError.Condition.service_unavailable
 import org.json.simple.JSONArray
 import org.json.simple.JSONObject
-import org.jitsi.xmpp.extensions.colibri2.json.Colibri2JSONDeserializer
 import org.json.simple.parser.JSONParser
+import java.util.Collections.singletonList
 
 /**
  * Implements [ColibriSessionManager] using colibri2.
@@ -109,6 +109,7 @@ class ColibriV2SessionManager(
     private val syncRoot = Any()
 
     private val okHttpClient = OkHttpClient()
+
     /**
      * Expire everything.
      */
@@ -354,7 +355,7 @@ class ColibriV2SessionManager(
                         if (from != null) {
                             logger.debug {
                                 "Adding a relayed endpoint to $otherSession for ${participantInfo.id} " +
-                                        "from ${from.relayId}."
+                                    "from ${from.relayId}."
                             } // We already made sure that relayId is not null when there are multiple sessions.
                             otherSession.updateRemoteParticipant(participantInfo, from.relayId!!, create = true)
                         }
