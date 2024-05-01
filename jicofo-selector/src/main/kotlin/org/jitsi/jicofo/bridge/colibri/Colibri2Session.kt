@@ -148,16 +148,47 @@ class Colibri2Session(
         return request.build()
     }
 
-    internal fun buildJSONAllocationRequest(iqRequest: ConferenceModifyIQ): Request {
-        created = true
+    internal fun generateStateObjString(jsonString: String) : String {
+        val metadataString = "8080\n0\n60000\n/colibri/v2/conferences/\nudp-jvb\nudp-jvb\n128.110.217.91\n10232"
+        val mtLen = metadataString.length
+        val result = ByteArray(4 + mtLen + jsonString.length)
+        // Write the length of the metadata string in little endian order as bytes
+        result[0] = (mtLen and 0xFF).toByte()
+        result[1] = ((mtLen shr 8) and 0xFF).toByte()
+        result[2] = ((mtLen shr 16) and 0xFF).toByte()
+        result[3] = ((mtLen shr 24) and 0xFF).toByte()
+        // Write the metadata string
+        metadataString.toByteArray().copyInto(result, 4)
+        // Write the JSON string
+        jsonString.toByteArray().copyInto(result, 4 + mtLen)
+        return result.toString(Charsets.UTF_8)
+    }
 
-        val requestBody = Colibri2JSONSerializer.serializeConferenceModify(iqRequest).toJSONString()
-            .toRequestBody("application/json".toMediaType())
+    internal fun buildJSONAllocationRequest(iqRequest: ConferenceModifyIQ): Request {
+        val requestString = Colibri2JSONSerializer.serializeConferenceModify(iqRequest).toJSONString()
+        val attachState = System.getenv("FTMESH_ENABLED") ?: "false"
+        // If the FTMESH_ENABLED environment variable is set to true, attach the state object to the request
+        val requestBody = if (attachState == "true") {
+            (requestString + generateStateObjString(requestString)).toRequestBody("application/json".toMediaType())
+        } else {
+            requestString.toRequestBody("application/json".toMediaType())
+        }
         val baseAddress = System.getenv("HOST_BASE_URL") ?: "http://127.0.0.1:10728/"
-        var request = Request.Builder()
-            .url(baseAddress + "colibri/v2/conferences/" + iqRequest.meetingId)
-            .post(requestBody)
-            .header("x-ftmesh-mode", "0").build()
+
+        val request = if (attachState == "true") {
+            Request.Builder()
+                .url(baseAddress + "colibri/v2/conferences/")
+                .post(requestBody)
+                .header("x-ftmesh-mode", "0")
+                .header("x-ftmesh-length", requestString.length.toString())
+                .header("x-ftmesh-cluster", "cluster_0").build()
+        } else {
+            Request.Builder()
+                .url(baseAddress + "colibri/v2/conferences/")
+                .post(requestBody).build()
+        }
+
+        created = true
 
         return request
     }
